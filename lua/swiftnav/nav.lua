@@ -187,6 +187,23 @@ local function show_locations(locations, title, prefill)
   present(location_items(locations), title, prefill)
 end
 
+local function useful_locations(locations, word)
+  local kept = {}
+  for _, location in ipairs(locations) do
+    local start = location.range.start
+    local suspect = start.line == 0 and start.character == 0
+    if suspect then
+      local path = vim.uri_to_fname(location.uri)
+      if not path:match('%.swift$') or line_at(path, 1):find(word, 1, true) then
+        kept[#kept + 1] = location
+      end
+    else
+      kept[#kept + 1] = location
+    end
+  end
+  return kept
+end
+
 local function word_under_cursor()
   return vim.fn.expand('<cword>')
 end
@@ -222,8 +239,10 @@ function M.definition()
   local bufnr = api.nvim_get_current_buf()
   if has_build_settings(bufnr) then
     local handled = lsp_locations(bufnr, 'textDocument/definition', nil, function(locations)
-      if #locations > 0 and not self_only(locations, bufnr) then
-        show_locations(locations, 'Definition', word_under_cursor())
+      local word = word_under_cursor()
+      local kept = useful_locations(locations, word)
+      if #kept > 0 and not self_only(kept, bufnr) then
+        show_locations(kept, 'Definition', word)
       else
         fallback_definition(bufnr)
       end

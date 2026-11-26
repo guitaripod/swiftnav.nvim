@@ -218,9 +218,17 @@ end
 
 local function jump(item, action, on_open)
   recency.touch(item)
+  local range = item.range
+  if not range and item.lnum then
+    local character = item.col or 0
+    range = {
+      start = { line = item.lnum - 1, character = character },
+      ['end'] = { line = item.lnum - 1, character = character + #(item.name or '') },
+    }
+  end
   local location = {
     uri = vim.uri_from_fname(item.path),
-    range = item.range or { start = { line = 0, character = 0 }, ['end'] = { line = 0, character = 0 } },
+    range = range or { start = { line = 0, character = 0 }, ['end'] = { line = 0, character = 0 } },
   }
   if action == 'vsplit' or action == 'split' or action == 'tab' then
     local command = action == 'vsplit' and 'vsplit' or (action == 'split' and 'split' or 'tabedit')
