@@ -163,6 +163,15 @@ Measured on a 2,561-file, 70k-declaration application repository:
 | `gd` warm, index fallback | ~1ms |
 | References fallback (`gr`) | ~18ms |
 
+## Troubleshooting
+
+- **sourcekit-lsp asks whether to trust a workspace on macOS** — trust it once.
+  Without trust it answers nothing, and swiftnav uses the declaration index.
+- **A definition opens the right file at line 1** — sourcekit sometimes answers
+  with a file-only location; 0.1.1 and later ignore those and use the index.
+- **No symbols at all** — `ripgrep` must be on `PATH`; run `:SwiftIndex` to
+  rebuild.
+
 ## License
 
 GPL-3.0. See [LICENSE](LICENSE).
