@@ -1,0 +1,135 @@
+*swiftnav.txt*  Xcode-style navigation for Swift             *swiftnav*
+
+Xcode-style navigation for Swift: Open Quickly, document items, a breadcrumb
+jump bar, Related Items, and go-to-definition that keeps working in Xcode app
+targets where sourcekit-lsp has no build index.
+
+==============================================================================
+CONTENTS                                             *swiftnav-contents*
+
+  1. Setup ................................... |swiftnav-setup|
+  2. Options ................................. |swiftnav-options|
+  3. Keys .................................... |swiftnav-keys|
+  4. Commands ................................ |swiftnav-commands|
+  5. The declaration index ................... |swiftnav-index|
+  6. License ................................. |swiftnav-license|
+
+==============================================================================
+1. SETUP                                                *swiftnav-setup*
+
+With lazy.nvim: >lua
+  {
+    'guitaripod/swiftnav.nvim',
+    lazy = false,
+    opts = {},
+  }
+<
+Without a plugin manager, add the repository to 'runtimepath' and call: >lua
+  require('swiftnav').setup()
+<
+The plugin expects a Swift toolchain with `sourcekit-lsp` on `PATH`. It does
+not configure the language server itself; use |vim.lsp.config()| and
+|vim.lsp.enable()|, or nvim-lspconfig. The navigation fallbacks work without a
+client, and the LSP-first paths use it when attached.
+
+`gd`, `gD`, `gy`, `gi`, `gr`, `grr`, `gri`, `grt`, `K`, `gO` and `<C-]>` are
+mapped per Swift buffer. The four leader maps are global and guarded by the
+buffer being Swift or inside a Swift package.
+
+Requires Neovim 0.11+, ripgrep, and the Swift treesitter parser. `fd` is
+optional and makes Open Quickly's file list faster.
+
+==============================================================================
+2. OPTIONS                                            *swiftnav-options*
+
+>lua
+  require('swiftnav').setup({
+    keymaps = {
+      open = '<leader>so',
+      jump = '<leader>sj',
+      related = '<leader>sR',
+      reveal = '<leader>sS',
+    },
+    index = {
+      preload = true,
+    },
+  })
+<
+`keymaps` (table|false)
+  Leader maps for the four list commands. `false` disables them; an empty
+  string skips one entry. Swift buffers always receive the `gd` family.
+
+`index.preload` (boolean, default true)
+  Build the declaration index shortly after a Swift buffer opens. When false,
+  the index is built on first navigation.
+
+==============================================================================
+3. KEYS                                                  *swiftnav-keys*
+
+In Swift buffers: >
+
+
+  gd, gD, <C-]>  Definition, declaration, jump to definition
+  gy, grt        Type definition
+  gi, gri        Implementations and overrides
+  gr, grr        References
+  K              Hover, or the declaration line
+  gO             Document items
+<
+Leader maps (configurable): >
+
+
+  <leader>so     Open Quickly
+  <leader>sj     Document items
+  <leader>sR     Related items
+  <leader>sS     Reveal in the project tree
+<
+==============================================================================
+4. COMMANDS                                        *swiftnav-commands*
+
+:SwiftOpen [query]                                  *:SwiftOpen*
+  Open Quickly. With a query, prefill the search.
+
+:SwiftJump                                          *:SwiftJump*
+  List the current file's declarations.
+
+:SwiftRelated                                       *:SwiftRelated*
+  Callers, callees, overrides, conformances, supertypes, subtypes and
+  references for the symbol under the cursor.
+
+:SwiftReveal                                        *:SwiftReveal*
+  Reveal the current file in nvim-tree.
+
+:SwiftIndex                                         *:SwiftIndex*
+  Discard the cached declaration index and rebuild it.
+
+:SwiftWarm                                          *:SwiftWarm*
+  Run `swift build` into sourcekit-lsp's index tree for a package.
+
+==============================================================================
+5. THE DECLARATION INDEX                            *swiftnav-index*
+
+The index covers the repository (nearest `.git`, `Package.swift` or
+`project.yml`) and is built with four ripgrep passes: types, functions,
+type-level properties and enum cases. It is written to
+`stdpath('cache')/swiftnav/<hash>.json` with file mtimes.
+
+On the next session the cache is loaded and compared against the working tree;
+added, changed and deleted files are patched in the background. `BufWritePost`
+re-indexes the file that was saved.
+
+Lookups prefer the current file, then the same top-level target folder, then
+declarations in the same enclosing type. Enclosing types are resolved with
+treesitter and cached per file.
+
+sourcekit-lsp is used first when `Package.swift`, `buildServer.json` or
+`compile_commands.json` is above the file. Otherwise navigation goes straight
+to the index, which avoids a request that could only return nothing. On macOS,
+xcodebuild.nvim's `buildServer.json` gives app targets a real sourcekit index.
+
+==============================================================================
+6. LICENSE                                          *swiftnav-license*
+
+GPL-3.0. See LICENSE in the repository.
+
+vim:tw=78:ts=8:noet:ft=help:norl:
