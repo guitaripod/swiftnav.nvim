@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fix line numbers in files edited after the first index when they contain blank lines.
+- `:SwiftNavDebug` includes the receiver type.
 - Add headless test suite (`tests/run.lua`).
 - Add `nav.pick_margin`, `nav.weights` and `:SwiftNavDebug` to tune and explain ranking.
 - Resolve `Type.member` and `value.member` against the receiver's type.

@@ -71,7 +71,7 @@ local RESERVED = {
 }
 
 --- Bump when the extraction rules change, so stale caches are discarded.
-local INDEX_VERSION = 5
+local INDEX_VERSION = 6
 
 local TYPE_NODES = {
   class_declaration = true,
@@ -256,7 +256,7 @@ end
 
 local function index_text(path, text)
   local lnum = 0
-  for line in text:gmatch('[^\n]+') do
+  for line in (text .. '\n'):gmatch('([^\n]*)\n') do
     lnum = lnum + 1
     local kind, name, col = classify(line)
     if kind and name then

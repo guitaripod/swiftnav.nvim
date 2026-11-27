@@ -99,6 +99,11 @@ check('annotation receiver', indexer.receiver_type('list', 0), 'Wishlist')
 local totals = indexer.definition_candidates('total', 0, 'Wishlist')
 check('receiver picks member', totals[1].lnum == 5 and totals[1].parts.receiver ~= nil, true)
 
+write('Sources/Gap.swift', 'import Foundation\n\n\nstruct Gap {\n}')
+indexer.update_file(fixture .. '/Sources/Gap.swift')
+local gap = indexer.definition_candidates('Gap', 0)
+check('blank lines keep line numbers', gap[1] and gap[1].lnum, 4)
+
 vim.fn.delete(fixture, 'rf')
 io.write(string.format('%d checks, %d failed\n', total, failures))
 vim.cmd(failures == 0 and 'qa!' or 'cq!')

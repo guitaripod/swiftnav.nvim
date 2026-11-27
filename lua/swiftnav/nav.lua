@@ -555,9 +555,11 @@ end
 function M.explain()
   local bufnr = vim.api.nvim_get_current_buf()
   local word = word_under_cursor()
+  local receiver_name = receiver_word()
   require('swiftnav.indexer').ensure(bufnr, function()
-    local items = require('swiftnav.indexer').definition_candidates(word, bufnr)
-    local lines = { string.format('%s: %d candidates, picker margin %d', word, #items, pick_margin()) }
+    local receiver = require('swiftnav.indexer').receiver_type(receiver_name, bufnr)
+    local items = require('swiftnav.indexer').definition_candidates(word, bufnr, receiver)
+    local lines = { string.format('%s: %d candidates, receiver %s, picker margin %d', word, #items, receiver or 'none', pick_margin()) }
     for _, item in ipairs(items) do
       local parts = {}
       for name, value in pairs(item.parts or {}) do
