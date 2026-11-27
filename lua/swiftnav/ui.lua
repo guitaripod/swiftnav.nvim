@@ -58,6 +58,9 @@ function Picker:geometry()
 end
 
 function Picker:query_text()
+  if not api.nvim_buf_is_valid(self.input_buf) then
+    return ''
+  end
   return api.nvim_buf_get_lines(self.input_buf, 0, 1, false)[1] or ''
 end
 
@@ -369,7 +372,7 @@ function M.open(opts)
         return true
       end
       vim.schedule(function()
-        if picker.closed then
+        if picker.closed or not api.nvim_buf_is_valid(picker.input_buf) then
           return
         end
         picker.query = picker:query_text()
