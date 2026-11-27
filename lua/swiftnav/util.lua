@@ -23,13 +23,30 @@ function M.package_root(bufnr)
   return hit and vim.fs.dirname(hit) or nil
 end
 
+--- The nearest Swift project marker, if any.
+function M.project_root(bufnr)
+  bufnr = bufnr or vim.api.nvim_get_current_buf()
+  local name = vim.api.nvim_buf_get_name(bufnr)
+  local start = name ~= '' and vim.fs.dirname(name) or vim.fn.getcwd()
+  for _, marker in ipairs({ 'Package.swift', 'project.yml' }) do
+    local hit = vim.fs.find(marker, { path = start, upward = true })[1]
+    if hit then
+      return vim.fs.dirname(hit)
+    end
+  end
+  local bundle = vim.fs.find(function(entry)
+    return entry:match('%.xcodeproj$') ~= nil or entry:match('%.xcworkspace$') ~= nil
+  end, { path = start, upward = true })[1]
+  return bundle and vim.fs.dirname(bundle) or nil
+end
+
 --- Decide whether Swift navigation should answer for this buffer.
 function M.swift_context(bufnr)
   bufnr = bufnr or vim.api.nvim_get_current_buf()
   if vim.bo[bufnr].filetype == 'swift' then
     return true
   end
-  return M.package_root(bufnr) ~= nil
+  return M.project_root(bufnr) ~= nil
 end
 
 --- Read at most `last` lines of a file, tolerating missing files.

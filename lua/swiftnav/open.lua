@@ -244,7 +244,7 @@ end
 function M.open(opts)
   opts = opts or {}
   local bufnr = api.nvim_get_current_buf()
-  local root = util.package_root(bufnr) or vim.fn.getcwd()
+  local root = util.package_root(bufnr) or util.project_root(bufnr) or vim.fn.getcwd()
   local current_path = api.nvim_buf_get_name(bufnr)
   local state = {
     files = {},
