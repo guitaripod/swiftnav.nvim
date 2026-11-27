@@ -142,6 +142,11 @@ function Picker:render()
       hl_group = 'SwiftNavSelection',
       priority = 200,
     })
+    api.nvim_buf_set_extmark(self.list_buf, namespace, row - 1, 0, {
+      sign_text = '▎',
+      sign_hl_group = 'SwiftNavSelectionBar',
+      priority = 200,
+    })
     api.nvim_win_set_cursor(self.list_win, { row, 0 })
     self:show_preview(visible[row])
   else
@@ -363,7 +368,7 @@ function M.open(opts)
   end
 
   window_options(picker.input_win)
-  window_options(picker.list_win, { cursorline = false })
+  window_options(picker.list_win, { cursorline = false, signcolumn = 'yes:1' })
 
   picker:bind_keys()
   api.nvim_buf_attach(picker.input_buf, false, {

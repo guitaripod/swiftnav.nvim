@@ -56,6 +56,7 @@ local fixture = vim.fn.tempname()
 vim.fn.mkdir(fixture .. '/apps/embr/App', 'p')
 vim.fn.mkdir(fixture .. '/apps/other/App', 'p')
 vim.fn.mkdir(fixture .. '/Sources', 'p')
+fixture = vim.uv.fs_realpath(fixture)
 local function write(path, text)
   vim.fn.writefile(vim.split(text, '\n'), fixture .. '/' .. path)
 end
@@ -87,6 +88,16 @@ check('parts reported', type(items[1].parts) == 'table' and items[1].parts.direc
 require('swiftnav').config.nav.weights = { directory = 0, target = 0, same_file_type = 0, same_file_member = 0 }
 local flat = indexer.definition_candidates('ReviewPrompt', 0)
 check('weights override', math.abs(flat[1].points - flat[2].points) < 1, true)
+
+write('apps/embr/App/Cart.swift', 'struct Cart {\n    func total() {}\n}\nstruct Wishlist {\n    func total() {}\n}')
+write('apps/embr/App/Shop.swift', 'final class Shop {\n    let cart = Cart()\n    let list: Wishlist\n}')
+indexer.update_file(fixture .. '/apps/embr/App/Cart.swift')
+indexer.update_file(fixture .. '/apps/embr/App/Shop.swift')
+check('type receiver', indexer.receiver_type('Cart', 0), 'Cart')
+check('initializer receiver', indexer.receiver_type('cart', 0), 'Cart')
+check('annotation receiver', indexer.receiver_type('list', 0), 'Wishlist')
+local totals = indexer.definition_candidates('total', 0, 'Wishlist')
+check('receiver picks member', totals[1].lnum == 5 and totals[1].parts.receiver ~= nil, true)
 
 vim.fn.delete(fixture, 'rf')
 io.write(string.format('%d checks, %d failed\n', total, failures))

@@ -773,10 +773,11 @@ M.default_weights = {
   same_file_member = 1000,
   target = 120,
   container = 300,
+  receiver = 450,
 }
 
 --- Declarations of a name, best match first.
-function M.definition_candidates(name, bufnr)
+function M.definition_candidates(name, bufnr, receiver)
   local entries = state.by_name[name]
   if not entries then
     return {}
@@ -809,9 +810,12 @@ function M.definition_candidates(name, bufnr)
     end
     local entry = candidate.entry
     local container = nil
-    if ctx.container and index <= 12 then
+    if (ctx.container and index <= 12) or (receiver and index <= 40) then
       container = M.container_of(entry.path, entry.lnum)
-      if container == ctx.container then
+      if container and container == receiver then
+        candidate.parts.receiver = weights().receiver
+        candidate.points = candidate.points + candidate.parts.receiver
+      elseif container and container == ctx.container then
         candidate.parts.container = weights().container
         candidate.points = candidate.points + candidate.parts.container
       end
@@ -831,6 +835,42 @@ function M.definition_candidates(name, bufnr)
     return left.points > right.points
   end)
   return items
+end
+
+--- The type a member access is written against, for `Type.member` or `value.member`.
+--- `receiver_word` is the identifier before the dot; a lowercase one is resolved
+--- through its declaration's annotation or initializer.
+function M.receiver_type(receiver_word, bufnr)
+  if not receiver_word or receiver_word == '' or receiver_word == 'self' then
+    return nil
+  end
+  if receiver_word:match('^%u') then
+    return receiver_word
+  end
+  local entries = state and state.by_name[receiver_word]
+  if not entries then
+    return nil
+  end
+  local ctx = context(bufnr)
+  local best, best_points
+  for _, entry in ipairs(entries) do
+    if entry.kind == 'Property' then
+      local points = score(entry, ctx)
+      if not best or points > best_points then
+        best, best_points = entry, points
+      end
+    end
+  end
+  if not best then
+    return nil
+  end
+  local lines = util.read_lines(best.path)
+  local line = lines and lines[best.lnum]
+  if not line then
+    return nil
+  end
+  local after = line:match('[%w_]+%s*(.*)$') or ''
+  return after:match(':%s*%[?([%u][%w_]*)') or after:match('=%s*([%u][%w_]*)%s*[%(%.]')
 end
 
 --- Extract kind, name and column from one declaration line. Exposed for tests.

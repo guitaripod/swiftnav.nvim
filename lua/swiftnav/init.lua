@@ -20,6 +20,7 @@ local defaults = {
 local function highlights()
   local groups = {
     SwiftNavSelection = 'PmenuSel',
+    SwiftNavSelectionBar = 'Special',
     SwiftNavStatus = 'Comment',
     SwiftNavName = 'Normal',
     SwiftNavContainer = 'Comment',

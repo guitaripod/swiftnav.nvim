@@ -254,13 +254,26 @@ local function self_only(locations, bufnr)
   return #locations > 0
 end
 
+--- The identifier written before a dot directly ahead of the cursor word.
+local function receiver_word()
+  local line = api.nvim_get_current_line()
+  local column = api.nvim_win_get_cursor(0)[2] + 1
+  local word_start = column
+  while word_start > 1 and line:sub(word_start - 1, word_start - 1):match('[%w_]') do
+    word_start = word_start - 1
+  end
+  return line:sub(1, word_start - 1):match('([%a_][%w_]*)%s*%??!?%.$')
+end
+
 local function fallback_definition(bufnr)
   local word = word_under_cursor()
   if word == '' then
     return
   end
+  local receiver_name = receiver_word()
   indexer.ensure(bufnr, function()
-    local candidates = indexer.definition_candidates(word, bufnr)
+    local receiver = indexer.receiver_type(receiver_name, bufnr)
+    local candidates = indexer.definition_candidates(word, bufnr, receiver)
     if #candidates == 0 then
       util.notify('no Swift definition for ' .. word, vim.log.levels.WARN)
       return
