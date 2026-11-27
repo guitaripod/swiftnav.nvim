@@ -10,6 +10,10 @@ local defaults = {
   index = {
     preload = true,
   },
+  nav = {
+    pick_margin = 150,
+    weights = {},
+  },
 }
 
 local function highlights()
@@ -105,6 +109,10 @@ local function commands()
   vim.api.nvim_create_user_command('SwiftReveal', function()
     require('swiftnav.jumpbar').reveal()
   end, { desc = 'Reveal the file in the project tree' })
+
+  vim.api.nvim_create_user_command('SwiftNavDebug', function()
+    require('swiftnav.nav').explain()
+  end, { desc = 'Explain the ranking of definition candidates under the cursor' })
 
   vim.api.nvim_create_user_command('SwiftWarm', function()
     require('swiftnav.index').warm()

@@ -733,23 +733,47 @@ local function shared_directories(left, right)
   return shared
 end
 
+--- Scoring weights, with user overrides from `setup({ nav = { weights = {} } })`.
+local function weights()
+  local config = require('swiftnav').config
+  return vim.tbl_extend('force', M.default_weights, config and config.nav and config.nav.weights or {})
+end
+
+--- Score one candidate and report each contribution by name.
 local function score(entry, ctx)
-  local points = shared_directories(entry.path, ctx.path) * 80
+  local weight = weights()
+  local parts = {}
+  parts.directory = shared_directories(entry.path, ctx.path) * weight.directory
   local type_declaration = TYPES[entry.kind]
   if type_declaration then
-    points = points + 30
+    parts.type = weight.type
     if entry.kind ~= 'Extension' then
-      points = points + 400
+      parts.primary = weight.primary
     end
   end
   if entry.path == ctx.path then
-    points = points + (type_declaration and 200 or 1000)
+    parts.same_file = type_declaration and weight.same_file_type or weight.same_file_member
   end
   if entry.path:sub(#ctx.root + 2):match('^([^/]+)') == ctx.target then
-    points = points + 120
+    parts.target = weight.target
   end
-  return points - #entry.path * 0.02
+  parts.length = -#entry.path * 0.02
+  local points = 0
+  for _, value in pairs(parts) do
+    points = points + value
+  end
+  return points, parts
 end
+
+M.default_weights = {
+  directory = 80,
+  type = 30,
+  primary = 400,
+  same_file_type = 200,
+  same_file_member = 1000,
+  target = 120,
+  container = 300,
+}
 
 --- Declarations of a name, best match first.
 function M.definition_candidates(name, bufnr)
@@ -771,7 +795,8 @@ function M.definition_candidates(name, bufnr)
   local ctx = context(bufnr)
   local ranked = {}
   for _, entry in ipairs(entries) do
-    ranked[#ranked + 1] = { entry = entry, points = score(entry, ctx) }
+    local points, parts = score(entry, ctx)
+    ranked[#ranked + 1] = { entry = entry, points = points, parts = parts }
   end
   table.sort(ranked, function(left, right)
     return left.points > right.points
@@ -787,7 +812,8 @@ function M.definition_candidates(name, bufnr)
     if ctx.container and index <= 12 then
       container = M.container_of(entry.path, entry.lnum)
       if container == ctx.container then
-        candidate.points = candidate.points + 300
+        candidate.parts.container = weights().container
+        candidate.points = candidate.points + candidate.parts.container
       end
     end
     items[#items + 1] = {
@@ -798,6 +824,7 @@ function M.definition_candidates(name, bufnr)
       col = entry.col,
       container = container,
       points = candidate.points,
+      parts = candidate.parts,
     }
   end
   table.sort(items, function(left, right)
@@ -805,6 +832,9 @@ function M.definition_candidates(name, bufnr)
   end)
   return items
 end
+
+--- Extract kind, name and column from one declaration line. Exposed for tests.
+M.classify = classify
 
 function M.setup()
   vim.api.nvim_create_autocmd('BufWritePost', {

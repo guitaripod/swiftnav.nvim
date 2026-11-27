@@ -32,6 +32,27 @@ ripgrep, cached to disk, and patched as files change.
 - **Index cache** — ~170ms to build a 70k-symbol repository, ~60ms to load it
   next session, a few milliseconds to patch changed files.
 
+## Tuning and debugging
+
+`:SwiftNavDebug` lists every definition candidate for the word under the
+cursor with the score parts behind it. Override the weights or the picker
+margin when a monorepo ranks the wrong sibling first:
+
+```lua
+opts = {
+  nav = {
+    pick_margin = 150,
+    weights = { directory = 80, target = 120, same_file_member = 1000 },
+  },
+}
+```
+
+## Tests
+
+```sh
+nvim --headless -n -u NONE -l tests/run.lua
+```
+
 ## Requirements
 
 - Neovim 0.11 or newer (developed on 0.12)

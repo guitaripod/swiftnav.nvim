@@ -103,6 +103,12 @@ local function jump(item, action)
   }, action)
 end
 
+--- Score lead the best candidate needs to skip the picker.
+local function pick_margin()
+  local config = require('swiftnav').config
+  return config and config.nav and config.nav.pick_margin or 150
+end
+
 local function present(items, title, prefill, options)
   options = options or {}
   if #items == 0 then
@@ -112,7 +118,7 @@ local function present(items, title, prefill, options)
     jump(items[1], 'edit')
     return
   end
-  if items[1].points and items[2].points and items[1].points - items[2].points >= 150 then
+  if items[1].points and items[2].points and items[1].points - items[2].points >= pick_margin() then
     jump(items[1], 'edit')
     return
   end
@@ -530,6 +536,31 @@ function M.references()
     end
   end
   search()
+end
+
+--- Print every candidate for the word under the cursor with its score parts.
+function M.explain()
+  local bufnr = vim.api.nvim_get_current_buf()
+  local word = word_under_cursor()
+  require('swiftnav.indexer').ensure(bufnr, function()
+    local items = require('swiftnav.indexer').definition_candidates(word, bufnr)
+    local lines = { string.format('%s: %d candidates, picker margin %d', word, #items, pick_margin()) }
+    for _, item in ipairs(items) do
+      local parts = {}
+      for name, value in pairs(item.parts or {}) do
+        parts[#parts + 1] = string.format('%s=%g', name, value)
+      end
+      table.sort(parts)
+      lines[#lines + 1] = string.format(
+        '%7.1f  %-9s %s  [%s]',
+        item.points or 0,
+        item.kind,
+        short_location(item.path, item.lnum),
+        table.concat(parts, ' ')
+      )
+    end
+    vim.api.nvim_echo({ { table.concat(lines, '\n') } }, true, {})
+  end, false)
 end
 
 return M

@@ -103,6 +103,10 @@ Leader maps (configurable): >
 :SwiftIndex                                         *:SwiftIndex*
   Discard the cached declaration index and rebuild it.
 
+:SwiftNavDebug                                  *:SwiftNavDebug*
+    List the definition candidates for the word under the cursor with the
+    score parts behind each. Tune with `nav.weights` and `nav.pick_margin`.
+
 :SwiftWarm                                          *:SwiftWarm*
   Run `swift build` into sourcekit-lsp's index tree for a package.
 
