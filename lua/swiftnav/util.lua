@@ -94,4 +94,26 @@ function M.fit(text, width)
   return out .. '…'
 end
 
+--- Byte ranges of `name` that a query matched: the substring, else each letter in order.
+function M.match_ranges(name, query)
+  if not query or query == '' then
+    return {}
+  end
+  local lower, needle = name:lower(), query:lower()
+  local at = lower:find(needle, 1, true)
+  if at then
+    return { { at - 1, at - 1 + #needle } }
+  end
+  local ranges, position = {}, 1
+  for index = 1, #needle do
+    local found = lower:find(needle:sub(index, index), position, true)
+    if not found then
+      return {}
+    end
+    ranges[#ranges + 1] = { found - 1, found }
+    position = found + 1
+  end
+  return ranges
+end
+
 return M

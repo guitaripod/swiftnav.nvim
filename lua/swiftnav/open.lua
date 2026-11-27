@@ -109,7 +109,7 @@ local function collect_symbols(results, current_path)
   return items
 end
 
-local function format(item, width)
+local function format(item, width, query)
   local mark, group = glyph.get(item.kind)
   local label = item.name
   local location
@@ -133,6 +133,13 @@ local function format(item, width)
     { 0, #mark, group },
     { #mark + 1, #mark + 1 + #item.name, 'SwiftNavName' },
   }
+  local name_start = #mark + 1
+  for _, range in ipairs(util.match_ranges(item.name, query)) do
+    local finish = math.min(name_start + range[2], #left)
+    if name_start + range[1] < finish then
+      marks[#marks + 1] = { name_start + range[1], finish, 'SwiftNavMatch' }
+    end
+  end
   if #location > 0 then
     marks[#marks + 1] = { #text - #location, #text, 'SwiftNavPath' }
   end

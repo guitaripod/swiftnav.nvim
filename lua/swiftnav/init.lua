@@ -1,6 +1,7 @@
 local M = {}
 
 local defaults = {
+  icons = 'auto',
   keymaps = {
     open = '<leader>so',
     jump = '<leader>sj',
@@ -24,6 +25,10 @@ local function highlights()
     SwiftNavContainer = 'Comment',
     SwiftNavPath = 'Comment',
     SwiftNavKindType = '@type',
+    SwiftNavKindEnum = '@lsp.type.enum',
+    SwiftNavKindProtocol = '@lsp.type.interface',
+    SwiftNavKindConstant = '@constant',
+    SwiftNavMatch = 'Special',
     SwiftNavKindFunction = '@function',
     SwiftNavKindValue = '@variable.member',
     SwiftNavKindModule = '@module',

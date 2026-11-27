@@ -165,7 +165,7 @@ end
 
 function Picker:format(item, width)
   if self.opts.format then
-    local text, marks = self.opts.format(item, width)
+    local text, marks = self.opts.format(item, width, self.query)
     return text, marks or {}
   end
   return util.fit(item.text or item.name or '', width), {}

@@ -39,6 +39,19 @@ check('arguments dropped', rank.score('make', { name = 'make(named:)', kind = 'F
 check('current file bonus', rank.score('a', { name = 'a', kind = 'Function', current_file = true })
   - rank.score('a', { name = 'a', kind = 'Function' }), 160)
 
+local util = require('swiftnav.util')
+check('substring range', util.match_ranges('ReviewPrompt', 'prom'), { { 6, 10 } })
+check('subsequence ranges', util.match_ranges('ButtonViewController', 'bvc'), { { 0, 1 }, { 6, 7 }, { 10, 11 } })
+check('no query', util.match_ranges('Store', ''), {})
+
+local glyph = require('swiftnav.glyph')
+vim.g.have_nerd_font = false
+require('swiftnav').config = { icons = 'auto', nav = {} }
+check('ascii by default', (glyph.get('Struct')), 'S')
+require('swiftnav').config.icons = true
+check('nerd icon', (glyph.get('Struct')) ~= 'S', true)
+require('swiftnav').config = nil
+
 local fixture = vim.fn.tempname()
 vim.fn.mkdir(fixture .. '/apps/embr/App', 'p')
 vim.fn.mkdir(fixture .. '/apps/other/App', 'p')
