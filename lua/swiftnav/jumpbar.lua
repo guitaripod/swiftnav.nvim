@@ -137,8 +137,12 @@ function M.reveal()
     util.notify('nvim-tree is not available', vim.log.levels.WARN)
     return
   end
-  tree.tree.open()
-  tree.tree.find_file({ open = true, focus = true })
+  local path = api.nvim_buf_get_name(0)
+  if path == '' then
+    util.notify('no file to reveal', vim.log.levels.WARN)
+    return
+  end
+  tree.tree.find_file({ buf = path, open = true, focus = true })
 end
 
 return M
