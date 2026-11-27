@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Open Quickly lists indexed declarations when sourcekit-lsp returns no workspace symbols.
 - Fix line numbers in files edited after the first index when they contain blank lines.
 - `:SwiftNavDebug` includes the receiver type.
 - Add headless test suite (`tests/run.lua`).

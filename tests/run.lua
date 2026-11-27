@@ -104,6 +104,10 @@ indexer.update_file(fixture .. '/Sources/Gap.swift')
 local gap = indexer.definition_candidates('Gap', 0)
 check('blank lines keep line numbers', gap[1] and gap[1].lnum, 4)
 
+local found = indexer.search('revi', 10)
+check('search finds declarations', found[1] and found[1].name, 'ReviewPrompt')
+check('search skips extensions', #indexer.search('inner', 10), 0)
+
 vim.fn.delete(fixture, 'rf')
 io.write(string.format('%d checks, %d failed\n', total, failures))
 vim.cmd(failures == 0 and 'qa!' or 'cq!')

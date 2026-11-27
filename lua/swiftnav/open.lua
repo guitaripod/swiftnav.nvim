@@ -257,6 +257,7 @@ function M.open(opts)
     files = {},
     recents = recent_items(root),
     symbols = {},
+    indexed = {},
     query = '',
     generation = 0,
     pending = false,
@@ -267,7 +268,7 @@ function M.open(opts)
 
   local function candidates()
     local pool, seen_files = {}, {}
-    for _, source in ipairs({ state.symbols, state.recents, state.files }) do
+    for _, source in ipairs({ state.symbols, state.indexed, state.recents, state.files }) do
       for _, item in ipairs(source) do
         local duplicate = item.kind == 'File' and seen_files[item.path]
         if not duplicate then
@@ -284,6 +285,9 @@ function M.open(opts)
   end
 
   local function status_text()
+    if #state.symbols == 0 and #state.indexed > 0 then
+      return 'declaration index'
+    end
     if #vim.lsp.get_clients({ bufnr = bufnr, name = 'sourcekit' }) == 0 then
       return 'sourcekit-lsp is not attached'
     end
@@ -309,6 +313,7 @@ function M.open(opts)
     if not picker or picker.closed then
       return
     end
+    state.indexed = #state.symbols == 0 and #state.query >= 2 and require('swiftnav.indexer').search(state.query, 80) or {}
     local items = rank.rank(state.query, candidates())
     if #items > RESULT_LIMIT then
       local cut = {}
@@ -385,6 +390,8 @@ function M.open(opts)
       end
     end,
   })
+
+  require('swiftnav.indexer').ensure(bufnr, refresh, false)
 
   unsubscribe = index.on_settled(function()
     if picker and not picker.closed and state.query ~= '' and #state.symbols == 0 then

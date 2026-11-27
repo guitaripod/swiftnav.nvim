@@ -518,6 +518,34 @@ function M.stats()
   return state.count, state.root
 end
 
+--- Declarations whose name contains the query, for Open Quickly without sourcekit symbols.
+function M.search(query, limit)
+  local out = {}
+  if not state or not state.ready or query == '' then
+    return out
+  end
+  local needle = query:lower()
+  for name, entries in pairs(state.by_name) do
+    if name:lower():find(needle, 1, true) then
+      for _, entry in ipairs(entries) do
+        if entry.kind ~= 'Extension' then
+          out[#out + 1] = { name = entry.name, kind = entry.kind, path = entry.path, lnum = entry.lnum, col = entry.col }
+        end
+      end
+    end
+  end
+  table.sort(out, function(left, right)
+    if #left.name == #right.name then
+      return left.name < right.name
+    end
+    return #left.name < #right.name
+  end)
+  for index = #out, (limit or 80) + 1, -1 do
+    out[index] = nil
+  end
+  return out
+end
+
 --- Re-index one file after a write.
 function M.update_file(path)
   if not state.ready or not state.root then
