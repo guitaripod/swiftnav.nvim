@@ -83,7 +83,7 @@ local MODIFIERS = [[(?:[A-Za-z_][A-Za-z0-9_]*(?:\([^)]*\))?[ \t]+)*]]
 local ATTRIBUTES = '(?:@[A-Za-z_][A-Za-z0-9_]*(?:\\([^)]*\\))?[ \t]+)*'
 
 local TYPE_PATTERN = '^[ \t]*' .. ATTRIBUTES .. MODIFIERS
-  .. '(class|struct|enum|protocol|actor|extension|typealias)[ \t]+([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)'
+  .. '(class|struct|enum|protocol|actor|extension|typealias)[ \t]+([A-Za-z_][A-Za-z0-9_]*(?:\\.[A-Za-z_][A-Za-z0-9_]*)*)'
 local FUNCTION_PATTERN = '^[ \t]*' .. ATTRIBUTES .. MODIFIERS .. 'func[ \t]+([A-Za-z_][A-Za-z0-9_]*)'
 local PROPERTY_PATTERN = '^[ \t]{0,4}' .. ATTRIBUTES .. MODIFIERS .. '(?:let|var)[ \t]+([A-Za-z_][A-Za-z0-9_]*)'
 local CASE_PATTERN = '^[ \t]*case[ \t]+([A-Za-z_][A-Za-z0-9_]*)'
@@ -180,6 +180,12 @@ local function type_name(node, source)
 end
 
 local function classify(text)
+  local extension_start, extension_finish, extension_name = text:find('%f[%w]extension%s+([%a_][%w_%.]*)')
+  if extension_name then
+    local short = extension_name:match('([^.]+)$') or extension_name
+    local name_start = text:find(short, extension_finish - #short, true) or extension_start
+    return 'Extension', short, name_start - 1
+  end
   for keyword, kind in pairs(TYPE_KEYWORDS) do
     local start, finish, name = text:find('%f[%w]' .. keyword .. '%s+([%a_][%w_]*)')
     if name and not RESERVED[name] then
