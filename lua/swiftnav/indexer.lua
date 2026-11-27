@@ -311,6 +311,7 @@ local function rg_command(pattern, replace)
     pattern,
   }
   vim.list_extend(command, EXCLUDES)
+  command[#command + 1] = '.'
   return command
 end
 
@@ -318,11 +319,16 @@ local function split_lines(text)
   return vim.split(text or '', '\n', { trimempty = true })
 end
 
+local function relative_path(path)
+  return (path:gsub('^%./', ''))
+end
+
 local function parse_type_line(line)
   local path, lnum, payload = line:match('^(.-):(%d+):(.*)$')
   if not path then
     return
   end
+  path = relative_path(path)
   local keyword, name = payload:match('^(%a+)|(.+)$')
   if keyword and name then
     if keyword == 'extension' then
@@ -342,6 +348,7 @@ local function parse_named_line(line, kind)
   if not path or name == '' then
     return
   end
+  path = relative_path(path)
   add_entry({
     name = name,
     kind = kind,
@@ -360,12 +367,13 @@ local function build(notify)
     util.notify('indexing Swift declarations in ' .. vim.fs.basename(root))
   end
 
-  vim.system({ 'rg', '--files', unpack(EXCLUDES) }, { cwd = root, text = true }, function(files)
+  vim.system({ 'rg', '--files', unpack(EXCLUDES), '.' }, { cwd = root, text = true }, function(files)
     vim.schedule(function()
       if state.root ~= root then
         return
       end
-      for _, relative in ipairs(split_lines(files.stdout)) do
+      for _, entry in ipairs(split_lines(files.stdout)) do
+        local relative = relative_path(entry)
         local path = root .. '/' .. relative
         local stat = vim.uv.fs_stat(path)
         state.mtimes[path] = stat and stat.mtime.sec or 0
@@ -537,13 +545,15 @@ function M.reconcile()
   end
   local command = { 'rg', '--files' }
   vim.list_extend(command, EXCLUDES)
+  command[#command + 1] = '.'
   vim.system(command, { cwd = root, text = true }, function(object)
     vim.schedule(function()
       if state.root ~= root then
         return
       end
       local seen, changed = {}, {}
-      for _, relative in ipairs(split_lines(object.stdout)) do
+      for _, entry in ipairs(split_lines(object.stdout)) do
+        local relative = relative_path(entry)
         local path = root .. '/' .. relative
         seen[path] = true
         local stat = vim.uv.fs_stat(path)

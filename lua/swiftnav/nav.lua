@@ -376,6 +376,7 @@ local function fallback_references(bufnr, word, on_done)
     '!**/DerivedData/**',
     '--glob',
     '!**/Pods/**',
+    '.',
   }
   vim.system(command, { cwd = root, text = true }, function(object)
     vim.schedule(function()
@@ -383,6 +384,7 @@ local function fallback_references(bufnr, word, on_done)
       for line in (object.stdout or ''):gmatch('[^\n]+') do
         local path, lnum, text = line:match('^(.-):(%d+):(.*)$')
         if path then
+          path = path:gsub('^%./', '')
           local absolute = path:sub(1, 1) == '/' and path or (root .. '/' .. path)
           local col = text:find(word, 1, true)
           items[#items + 1] = {
