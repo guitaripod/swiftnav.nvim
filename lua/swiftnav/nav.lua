@@ -125,7 +125,7 @@ local function present(items, title, prefill, options)
   })
 end
 
-local function lsp_locations(bufnr, method, params, on_done)
+local function lsp_locations(bufnr, method, params, on_done, timeout)
   local supported = false
   for _, client in ipairs(vim.lsp.get_clients({ bufnr = bufnr })) do
     if client:supports_method(method, bufnr) then
@@ -136,7 +136,22 @@ local function lsp_locations(bufnr, method, params, on_done)
   if not supported then
     return false
   end
-  local cancel = vim.lsp.buf_request_all(bufnr, method, params or vim.lsp.util.make_position_params(0, 'utf-16'), function(results)
+  local finished = false
+  local cancel
+  local function finish(locations)
+    if finished then
+      return
+    end
+    finished = true
+    on_done(locations)
+  end
+  local timer = vim.defer_fn(function()
+    if cancel then
+      pcall(cancel)
+    end
+    finish({})
+  end, timeout or 300)
+  cancel = vim.lsp.buf_request_all(bufnr, method, params or vim.lsp.util.make_position_params(0, 'utf-16'), function(results)
     local locations = {}
     for _, entry in pairs(results or {}) do
       local encoding = 'utf-16'
@@ -159,10 +174,19 @@ local function lsp_locations(bufnr, method, params, on_done)
       end
     end
     vim.schedule(function()
-      on_done(locations)
+      pcall(function()
+        timer:stop()
+      end)
+      finish(locations)
     end)
   end)
-  return cancel ~= nil
+  if not cancel then
+    pcall(function()
+      timer:stop()
+    end)
+    return false
+  end
+  return true
 end
 
 local function location_items(locations)
@@ -419,29 +443,53 @@ function M.hover()
     fallback_hover(bufnr)
     return
   end
-  vim.lsp.buf_request_all(bufnr, 'textDocument/hover', vim.lsp.util.make_position_params(0, 'utf-16'), function(results)
-    local shown = false
-    for _, entry in pairs(results or {}) do
-      local result = entry.result
-      local contents = result and result.contents
-      if contents and (type(contents) == 'string' or (type(contents) == 'table' and not vim.tbl_isempty(contents))) then
-        vim.schedule(function()
+  local finished = false
+  local cancel
+  local timer = vim.defer_fn(function()
+    if finished then
+      return
+    end
+    finished = true
+    if cancel then
+      pcall(cancel)
+    end
+    fallback_hover(bufnr)
+  end, 350)
+  cancel = vim.lsp.buf_request_all(bufnr, 'textDocument/hover', vim.lsp.util.make_position_params(0, 'utf-16'), function(results)
+    vim.schedule(function()
+      if finished then
+        return
+      end
+      finished = true
+      pcall(function()
+        timer:stop()
+      end)
+      local shown = false
+      for _, entry in pairs(results or {}) do
+        local result = entry.result
+        local contents = result and result.contents
+        if contents and (type(contents) == 'string' or (type(contents) == 'table' and not vim.tbl_isempty(contents))) then
           vim.lsp.handlers['textDocument/hover'](nil, result, {
             bufnr = bufnr,
             client_id = entry.context and entry.context.client_id,
             method = 'textDocument/hover',
           }, { border = 'rounded' })
-        end)
-        shown = true
-        break
+          shown = true
+          break
+        end
       end
-    end
-    if not shown then
-      vim.schedule(function()
+      if not shown then
         fallback_hover(bufnr)
-      end)
-    end
+      end
+    end)
   end)
+  if not cancel then
+    finished = true
+    pcall(function()
+      timer:stop()
+    end)
+    fallback_hover(bufnr)
+  end
 end
 
 --- References with sourcekit-lsp when indexed, else a project-wide search.
@@ -469,7 +517,7 @@ function M.references()
       else
         search()
       end
-    end)
+    end, 500)
     if handled then
       return
     end
