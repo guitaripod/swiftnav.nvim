@@ -720,8 +720,21 @@ local function context(bufnr)
   }
 end
 
+local function shared_directories(left, right)
+  local shared = 0
+  for index = 1, math.min(#left, #right) do
+    if left:sub(index, index) ~= right:sub(index, index) then
+      break
+    end
+    if left:sub(index, index) == '/' then
+      shared = shared + 1
+    end
+  end
+  return shared
+end
+
 local function score(entry, ctx)
-  local points = 0
+  local points = shared_directories(entry.path, ctx.path) * 80
   local type_declaration = TYPES[entry.kind]
   if type_declaration then
     points = points + 30

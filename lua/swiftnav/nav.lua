@@ -56,10 +56,18 @@ local function line_at(path, lnum)
 end
 
 local function short_location(path, lnum)
-  local name = util.basename(path)
-  local stem = name:gsub('%.swift$', '')
-  if #stem > 22 then
-    stem = stem:sub(1, 12) .. '…' .. stem:sub(-7)
+  local parts = {}
+  for part in path:gmatch('[^/]+') do
+    parts[#parts + 1] = part
+  end
+  local take = math.min(3, #parts)
+  local tail = table.concat(parts, '/', #parts - take + 1)
+  local stem = tail:match('^(.*)%.swift$')
+  if not stem then
+    return string.format('%s:%d', tail, lnum)
+  end
+  if #stem > 32 then
+    stem = stem:sub(1, 14) .. '…' .. stem:sub(-14)
   end
   return string.format('%s.swift:%d', stem, lnum)
 end
