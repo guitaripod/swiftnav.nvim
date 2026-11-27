@@ -71,7 +71,7 @@ local RESERVED = {
 }
 
 --- Bump when the extraction rules change, so stale caches are discarded.
-local INDEX_VERSION = 4
+local INDEX_VERSION = 5
 
 local TYPE_NODES = {
   class_declaration = true,
@@ -83,7 +83,7 @@ local MODIFIERS = [[(?:[A-Za-z_][A-Za-z0-9_]*(?:\([^)]*\))?[ \t]+)*]]
 local ATTRIBUTES = '(?:@[A-Za-z_][A-Za-z0-9_]*(?:\\([^)]*\\))?[ \t]+)*'
 
 local TYPE_PATTERN = '^[ \t]*' .. ATTRIBUTES .. MODIFIERS
-  .. '(class|struct|enum|protocol|actor|extension|typealias)[ \t]+([A-Za-z_][A-Za-z0-9_]*)'
+  .. '(class|struct|enum|protocol|actor|extension|typealias)[ \t]+([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)'
 local FUNCTION_PATTERN = '^[ \t]*' .. ATTRIBUTES .. MODIFIERS .. 'func[ \t]+([A-Za-z_][A-Za-z0-9_]*)'
 local PROPERTY_PATTERN = '^[ \t]{0,4}' .. ATTRIBUTES .. MODIFIERS .. '(?:let|var)[ \t]+([A-Za-z_][A-Za-z0-9_]*)'
 local CASE_PATTERN = '^[ \t]*case[ \t]+([A-Za-z_][A-Za-z0-9_]*)'
@@ -159,6 +159,12 @@ function M.root(bufnr)
     if hit then
       return vim.fs.dirname(hit)
     end
+  end
+  local bundle = vim.fs.find(function(name)
+    return name:match('%.xcodeproj$') ~= nil or name:match('%.xcworkspace$') ~= nil
+  end, { path = start, upward = true })[1]
+  if bundle then
+    return vim.fs.dirname(bundle)
   end
   return name ~= '' and vim.fs.dirname(name) or vim.fn.getcwd()
 end
@@ -313,6 +319,9 @@ local function parse_type_line(line)
   end
   local keyword, name = payload:match('^(%a+)|(.+)$')
   if keyword and name then
+    if keyword == 'extension' then
+      name = name:match('([^.]+)$') or name
+    end
     add_entry({
       name = name,
       kind = TYPE_KEYWORDS[keyword] or 'Class',

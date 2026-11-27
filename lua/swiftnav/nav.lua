@@ -214,14 +214,11 @@ end
 local function useful_locations(locations, word)
   local kept = {}
   for _, location in ipairs(locations) do
-    local start = location.range.start
-    local suspect = start.line == 0 and start.character == 0
-    if suspect then
-      local path = vim.uri_to_fname(location.uri)
-      if not path:match('%.swift$') or line_at(path, 1):find(word, 1, true) then
-        kept[#kept + 1] = location
-      end
-    else
+    local path = vim.uri_to_fname(location.uri)
+    local generated = path:match('%.swiftinterface$') ~= nil
+      or path:find('/usr/lib/swift/', 1, true) ~= nil
+    local file_only = location.range.start.line == 0 and location.range.start.character == 0
+    if not generated and (not file_only or not path:match('%.swift$') or line_at(path, 1):find(word, 1, true)) then
       kept[#kept + 1] = location
     end
   end
